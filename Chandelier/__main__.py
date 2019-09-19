@@ -1,12 +1,6 @@
-from __future__ import print_function
+from __future__ import absolute_import
 import sys
-from datetime import datetime
-import chandelier
-
-def eprint(*args, **kwargs):
-    print(datetime.now(), *args, file=sys.stderr, **kwargs)
-
-bts_speaker = chandelier.bluetooth_speaker.BluetoothSpeaker("0C:A6:94:62:67:40")
+from Chandelier.chandelier import main
 
 #def whats_nearby():
 #    name_by_addr = {}
@@ -30,7 +24,5 @@ bts_speaker = chandelier.bluetooth_speaker.BluetoothSpeaker("0C:A6:94:62:67:40")
 #        print("\t Service id:  %s" % (services["service-id"]) )
 #        print("" )
 #
-#if __name__ == "__main__":
-#    name_by_addr = whats_nearby()
-#    for addr in name_by_addr.keys():
-#        what_services(addr, name_by_addr[addr])
+if __name__ == "__main__":
+  sys.exit(main())

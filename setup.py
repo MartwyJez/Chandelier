@@ -1,4 +1,7 @@
-from setuptools import setup
+from setuptools import setup,setuptools
+
+with open("README.md", "r") as fh:
+    long_description = fh.read()
 
 setup(
    name='Chandelier',
@@ -6,6 +9,12 @@ setup(
    description='Software to operate artistic installation in form of Chandelier',
    author='Arkadiusz Kotwica',
    author_email='arkadiusz.kotwica1@gmail.com',
-   packages=['chandelier'],  #same as name
+   classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: Raspbian Buster",
+    ],
+   packages=setuptools.find_packages(),  #same as name
    install_requires=['retry', 'RPi.GPIO'], #external packages as dependencies
+   python_requires='>=3.7',
 )
