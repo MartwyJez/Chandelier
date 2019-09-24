@@ -1,7 +1,7 @@
 from . import *
 
 def main():
-  bts_speaker = bluetooth_speaker.BluetoothDevice("0C:A6:94:62:67:40", debug=True)
+  bts_speaker = bluetooth_speaker.BluetoothSpeaker("0C:A6:94:62:67:40", debug=True)
   
 #def whats_nearby():
 #    name_by_addr = {}
