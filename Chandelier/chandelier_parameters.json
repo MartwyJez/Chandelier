@@ -1,0 +1,4 @@
+mac address of bluetooth
+path for ringtone, sinks (local, bluetooth or combined) for it and it's volume and color and brightness of leds
+path for voices, sinks (local, bluetooth or combined) for it and it's volume and color and brigtness of leds
+numbers of gpio ports for sensor detector

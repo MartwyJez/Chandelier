@@ -9,11 +9,16 @@ import pulsectl
 from .utilities import *
 
 
-class BluetoothError(Exception):
-    """Raised when bluetooth adapter have problem"""
+class BluetoothDevice:
+    
+    class BluetoothError(Exception):
+        """Raised when bluetooth adapter have problem"""
     pass
 
-class BluetoothDevice:
+    class DeviceNotFound(Exception):
+        """Raised when given device can't be found"""
+    pass
+
     def __end_connection__(self):
         if self.__interface__:
             self.__interface__.sendline("\ndisconnect")
@@ -44,9 +49,8 @@ class BluetoothDevice:
             return bluetoothctl
         except Exception as e:
             errprint(e)
-            errprint(
-                "Raspberry have problem with bluetoothctl.")
-            raise BluetoothError
+            errprint("Raspberry have problem with bluetoothctl.")
+            raise self.BluetoothError
 
     def __prepare_bluetooth__(self, __agent__):
         try:
@@ -63,11 +67,15 @@ class BluetoothDevice:
         except Exception as e:
             errprint(e)
             errprint("Raspberry have problem with prepare bluetooth.")
-            raise BluetoothError
+            raise self.BluetoothError
 
     def __connect__(self):
         try:
-            self.__check_if_device_is_visible__()
+            try:
+                self.__check_if_device_is_visible__()
+            except pexpect.exceptions.TIMEOUT:
+                raise self.DeviceNotFound
+
             stdprint("Device " + self.addr + " was found")
             self.__pair__()
             stdprint("Device " + self.addr + " is paired")
@@ -75,10 +83,14 @@ class BluetoothDevice:
             self.__interface__.sendline("\nconnect "+self.addr)
             self.__interface__.expect("Connection successful")
             stdprint("Connection to " + self.addr + " are estabilished")
-        except Exception as e:
+        except self.DeviceNotFound as e:
             errprint(e)
-            errprint("Rasberry couldn't find, pair or connect to the device.")
-            raise BluetoothError
+            errprint("Rasberry couldn't find device.")
+            raise e
+        except self.BluetoothError as e:
+            errprint(e)
+            errprint("Rasberry couldn't pair or connect to the device.")
+            raise e
 
     def __init__(self, addr, debug, agent):
         try:
@@ -88,22 +100,27 @@ class BluetoothDevice:
             self.__interface__ = self.__open_interface__()
             self.__prepare_bluetooth__(self.__agent__)
             self.__connect__()
-        except Exception:
+        except Exception as e:
             self.__end_connection__()
-            sys.exit(10)
+            raise e
 
     def __del__(self):
-        self.__end_connection__()
+            self.__end_connection__()
+            stdprint("Device " + self.addr + " is disconnected!")
+             
+
 
 class BluetoothSpeaker(BluetoothDevice):
     def __GetPulseAudioSink__(self):
         with pulsectl.Pulse('list-sinks') as pulse:
             for sink in pulse.sink_list():
-                if sink.proplist.get('device.string')==self.addr:
+                if sink.proplist.get('device.string') == self.addr:
                     return sink.index, sink.name
 
-
     def __init__(self, addr, debug=False, agent="NoInputNoOutput"):
-        super().__init__(self, addr, debug, agent)
-        self.paindex, self.paname = self.__GetPulseAudioSink__()
-        
+        try:
+            super().__init__(addr, debug, agent)
+            self.paindex, self.paname = self.__GetPulseAudioSink__()
+        except Exception as e:
+            errprint(e)
+            raise e
