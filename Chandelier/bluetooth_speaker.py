@@ -10,7 +10,7 @@ from .utilities import *
 
 
 class BluetoothDevice:
-    
+
     class BluetoothError(Exception):
         """Raised when bluetooth adapter have problem"""
     pass
@@ -19,17 +19,28 @@ class BluetoothDevice:
         """Raised when given device can't be found"""
     pass
 
+    def CheckIfConnected(self):
+        try:   
+            pexpect.spawn("hcitool con").expect(self.addr)
+            return True
+        except:
+            return False
+
     def __end_connection__(self):
         if self.__interface__:
             self.__interface__.sendline("\ndisconnect")
-            self.__interface__.sendline("\nscan off")
-            if not self.__interface__.terminate():
-                self.__interface__.terminate(force=True)
+            self.__interface__.expect("diconnected")
+            
 
     @retry(pexpect.exceptions.TIMEOUT, tries=20)
     def __check_if_device_is_visible__(self):
         self.__interface__.sendline("\ndevices")
         self.__interface__.expect(self.addr)
+
+    @retry(pexpect.exceptions.TIMEOUT, tries=120)
+    def __connect_to_device__(self):
+        self.__interface__.sendline("\nconnect "+self.addr)
+        self.__interface__.expect("Connection successful", timeout=1)
 
     def __pair__(self):
         self.__interface__.sendline("\npaired-devices")
@@ -75,21 +86,24 @@ class BluetoothDevice:
                 self.__check_if_device_is_visible__()
             except pexpect.exceptions.TIMEOUT:
                 raise self.DeviceNotFound
+            stdprint("Device " + self.addr + " is visible")
 
-            stdprint("Device " + self.addr + " was found")
             self.__pair__()
             stdprint("Device " + self.addr + " is paired")
 
-            self.__interface__.sendline("\nconnect "+self.addr)
-            self.__interface__.expect("Connection successful")
+            try:
+                self.__connect_to_device__()
+            except pexpect.exceptions.TIMEOUT:
+                raise self.DeviceNotFound
             stdprint("Connection to " + self.addr + " are estabilished")
+
         except self.DeviceNotFound as e:
             errprint(e)
-            errprint("Rasberry couldn't find device.")
+            errprint("Rasberry couldn't find device or connect.")
             raise e
         except self.BluetoothError as e:
             errprint(e)
-            errprint("Rasberry couldn't pair or connect to the device.")
+            errprint("Rasberry couldn't pair to the device.")
             raise e
 
     def __init__(self, addr, debug, agent):
@@ -100,14 +114,16 @@ class BluetoothDevice:
             self.__interface__ = self.__open_interface__()
             self.__prepare_bluetooth__(self.__agent__)
             self.__connect__()
+            self.__interface__.kill(15)
         except Exception as e:
+            self.__interface__ = self.__open_interface__()
             self.__end_connection__()
             raise e
 
     def __del__(self):
-            self.__end_connection__()
-            stdprint("Device " + self.addr + " is disconnected!")
-             
+        self.__interface__ = self.__open_interface__()
+        self.__end_connection__()
+        stdprint("Device " + self.addr + " is disconnected!")
 
 
 class BluetoothSpeaker(BluetoothDevice):

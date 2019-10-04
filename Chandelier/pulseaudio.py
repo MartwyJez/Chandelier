@@ -1,7 +1,6 @@
 import pulsectl
-from pydub import AudioSegment
-from pydub.playback import play
-
+import vlc
+from time import sleep
 
 class OutputControl():
 
@@ -11,14 +10,14 @@ class OutputControl():
         self.__interface__.sink_volume_set(Sink[0]().index, temp_vol)
 
     def __CreateCombinedSink__(self, sinks_list):
-        sinks_names = ', '.join(Sink[0]().name for Sink in sinks_list)
-        sinks_indexes = ','.join(Sink[0]().index for Sink in sinks_list)
-        args = "sink_name=" + sinks_indexes + "slaves=" + \
-            sinks_names + "sink_properties=\"\""
-        sink_module = pulse.module_load("module-combine-sink", args)
-        for Sink in pulse.sink_list():
+        sinks_names = ','.join(Sink[0]().name for Sink in sinks_list)
+        print(sinks_names)
+        args = "sink_name=HubertPierdoliGlupoty slaves=\"" + \
+            sinks_names + "\" sink_properties=\"\""
+        sink_module = self.__interface__.module_load("module-combine-sink", args)
+        for Sink in self.__interface__.sink_list():
             if Sink.owner_module == sink_module:
-                return (lambda: self.__interface__.sink_info(Sink.index), 1, 0)
+                return (lambda: self.__interface__.sink_info(Sink.index), 1.0)
 
     def __SetDefaultOutput__(self, Sink):
         self.__interface__.sink_default_set(Sink[0]())
@@ -28,12 +27,12 @@ class OutputControl():
 
         self.sinks_list = []
         for Sink in sinks_index_and_volume:
-            self.sinks_list.append(
-                (lambda: self.__interface__.sink_info(Sink[0]), float(Sink[1])))
+            def sink_pulseaudio(index): return lambda: self.__interface__.sink_info(index)
+            self.sinks_list.append((sink_pulseaudio(Sink[0]), float(Sink[1])))
 
         if len(self.sinks_list) > 1:
-            self.__SetDefaultOutput__(
-                self.__CreateCombinedSink__(self.sinks_list))
+            self.sinks_list.insert(0, self.__CreateCombinedSink__(self.sinks_list))
+            self.__SetDefaultOutput__(self.sinks_list[0])
             for Sink in self.sinks_list:
                 self.SetVolumeSink(Sink)
         else:
@@ -44,8 +43,14 @@ class OutputControl():
 class Play(OutputControl):
 
     def PlayFile(self, file):
-        sound = AudioSegment.from_file(file[0], file[1])
-        play(sound)
+        p = vlc.MediaPlayer(file)
+        p.play()
+
+        while p.is_playing() == 0:
+            sleep(1)
+        
+        while p.is_playing() == 1:
+            sleep(1)
 
     def __init__(self, sinks, file):
         self.file = file
