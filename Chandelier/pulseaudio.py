@@ -42,17 +42,22 @@ class OutputControl():
 
 class Play(OutputControl):
 
-    def PlayFile(self, file):
-        p = vlc.MediaPlayer(file)
-        p.play()
-
-        while p.is_playing() == 0:
+    def __PlayFile__(self):
+        self.player.play()
+        while self.player.is_playing() == 0:
             sleep(1)
         
-        while p.is_playing() == 1:
+        while self.player.is_playing() == 1:
             sleep(1)
+        self.player.stop()
+
+    def __del__(self):
+        self.player.stop()
+        self.player.release()
 
     def __init__(self, sinks, file):
         self.file = file
+        self.player = vlc.MediaPlayer(file)
         super().__init__(sinks)
-        self.PlayFile(self.file)
+        while True:
+            self.__PlayFile__()

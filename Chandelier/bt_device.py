@@ -6,6 +6,7 @@ import pexpect
 import time
 import io
 import pulsectl
+from time import sleep
 from .utilities import *
 
 
@@ -27,9 +28,8 @@ class BluetoothDevice:
             return False
 
     def __end_connection__(self):
-        if self.__interface__:
-            self.__interface__.sendline("\ndisconnect")
-            self.__interface__.expect("diconnected")
+        self.__interface__.sendline("\ndisconnect")
+        self.__interface__.expect("diconnected", timeout=5)
             
 
     @retry(pexpect.exceptions.TIMEOUT, tries=20)
@@ -40,7 +40,9 @@ class BluetoothDevice:
     @retry(pexpect.exceptions.TIMEOUT, tries=120)
     def __connect_to_device__(self):
         self.__interface__.sendline("\nconnect "+self.addr)
-        self.__interface__.expect("Connection successful", timeout=1)
+        self.__interface__.expect("Connection successful", timeout=5)
+        while not self.CheckIfConnected():
+            sleep(10)
 
     def __pair__(self):
         self.__interface__.sendline("\npaired-devices")
@@ -90,9 +92,11 @@ class BluetoothDevice:
 
             self.__pair__()
             stdprint("Device " + self.addr + " is paired")
-
             try:
-                self.__connect_to_device__()
+                if not self.CheckIfConnected():
+                    self.__connect_to_device__()
+                else:
+                    print("Device already connected.")
             except pexpect.exceptions.TIMEOUT:
                 raise self.DeviceNotFound
             stdprint("Connection to " + self.addr + " are estabilished")
@@ -106,7 +110,7 @@ class BluetoothDevice:
             errprint("Rasberry couldn't pair to the device.")
             raise e
 
-    def __init__(self, addr, debug, agent):
+    def __init__(self, addr, debug=False, agent="NoInputNoOutput"):
         try:
             self.addr = addr
             self.__DEBUG__ = debug
@@ -116,27 +120,17 @@ class BluetoothDevice:
             self.__connect__()
             self.__interface__.kill(15)
         except Exception as e:
+            print(e)
             self.__interface__ = self.__open_interface__()
             self.__end_connection__()
             raise e
+            pass
 
     def __del__(self):
-        self.__interface__ = self.__open_interface__()
-        self.__end_connection__()
+        #self.__interface__ = self.__open_interface__()
+        #try: 
+        #    self.__end_connection__()
+        #except:
+        #    pass
         stdprint("Device " + self.addr + " is disconnected!")
 
-
-class BluetoothSpeaker(BluetoothDevice):
-    def __GetPulseAudioSink__(self):
-        with pulsectl.Pulse('list-sinks') as pulse:
-            for sink in pulse.sink_list():
-                if sink.proplist.get('device.string') == self.addr:
-                    return sink.index, sink.name
-
-    def __init__(self, addr, debug=False, agent="NoInputNoOutput"):
-        try:
-            super().__init__(addr, debug, agent)
-            self.paindex, self.paname = self.__GetPulseAudioSink__()
-        except Exception as e:
-            errprint(e)
-            raise e

@@ -15,6 +15,6 @@ setup(
         "Operating System :: Raspbian Buster",
     ],
    packages=setuptools.find_packages(),  #same as name
-   install_requires=['retry', 'RPi.GPIO', 'pydub'], #external packages as dependencies
+   install_requires=['retry', 'RPi.GPIO', 'pydub', 'evdev'], #external packages as dependencies
    python_requires='>=3.7',
 )

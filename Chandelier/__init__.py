@@ -1,2 +1,2 @@
 name = "Chandelier"
-__all__ = ["bluetooth_speaker", "pulseaudio", "utilities"]
+__all__ = ["bt_devices", "pulseaudio", "utilities", "LED", "bt_devices"]
