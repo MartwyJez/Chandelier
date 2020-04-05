@@ -41,7 +41,6 @@ class BluetoothRemote(bt_device.BluetoothDevice):
             async for event in device.async_read_loop():
                 cat_event = evdev.categorize(event)
                 if type(cat_event) == evdev.KeyEvent:
-                    dir(cat_event)
                     return cat_event
                 
         devs_future = ""
