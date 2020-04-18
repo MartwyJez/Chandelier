@@ -42,13 +42,10 @@ class OutputControl():
 
 class Play(OutputControl):
 
-    def __PlayFile__(self):
+    def play(self):
         self.player.play()
-        while self.player.is_playing() == 0:
-            sleep(1)
-        
-        while self.player.is_playing() == 1:
-            sleep(1)
+
+    def stop_playing(self):
         self.player.stop()
 
     def __del__(self):
@@ -57,7 +54,6 @@ class Play(OutputControl):
 
     def __init__(self, sinks, file):
         self.file = file
-        self.player = vlc.MediaPlayer(file)
+        self.player = vlc.MediaPlayer(vlc.Instance('--input-repeat=999999'), file)
         super().__init__(sinks)
-        while True:
-            self.__PlayFile__()
+        self.play()

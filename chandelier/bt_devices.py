@@ -13,13 +13,14 @@ class BluetoothSpeaker(bt_device.BluetoothDevice):
                 if sink.proplist.get('device.string') == self.addr:
                     return sink.index, sink.name
 
-    def __init__(self, addr, debug=False, agent="NoInputNoOutput"):
+    def __init__(self, addr, debug=False, agent="NoInputNoOutput"):       
+        super().__init__(addr, debug, agent)
         try:
-            super().__init__(addr, debug, agent)
-            self.paindex, self.paname = self.__get_pulse_audio_sink__()
-        except Exception as exception:
-            utilities.errprint(exception)
-            raise exception
+            self.pa_index, self.paname = self.__get_pulse_audio_sink__()
+        except TypeError:
+            utilities.errprint("Device " + self.addr + " is not recongized as bluetooth speaker.")
+            raise self.BluetoothError
+
 
 
 class BluetoothRemote(bt_device.BluetoothDevice):

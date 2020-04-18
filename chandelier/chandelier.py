@@ -1,9 +1,50 @@
-import threading
 import sys
 from time import sleep
-from . import bt_devices, led, movement_sensor, pulseaudio
+from chandelier import bt_devices, led, movement_sensor, pulseaudio
 from .utilities import errprint
 import asyncio
+
+class Chandelier:
+    def __init__(self, sensors_pins, led_pins, speaker_addr, remote_addr):
+        #self.blt_speaker = bt_devices.BluetoothSpeaker(speaker_addr, debug=False)
+        #self.remote = bt_devices.BluetoothRemote(remote_addr)
+        #self.sensors = movement_sensor.MovementSensors(sensors_pins)
+        self.led = led.Led(led_pins[0], led_pins[1], led_pins[2])
+
+    def play_ringtone(self, volume):
+        self.ringtone = pulseaudio.Play([(self.blt_speaker.pa_index, volume)], "axel.mp3")
+    
+    def stop_playing_ringtone(self):
+        self.ringtone.stop_playing()
+    
+    def play_voices(self, volume):
+        self.voices = pulseaudio.Play([(0, volume)], "../ambient1.wav")
+    
+    def stop_playing_voices(self):
+        self.voices.stop_playing()
+
+    def led_after_detection(self):
+        self.led.set_r_intensity(100)
+        self.led.set_g_intensity(100)
+    
+    def led_after_pick_up(self):
+        self.led.set_r_intensity(100)
+        self.led.set_g_intensity(0)
+    
+    def led_standby(self):
+        while True:
+            for i in range(1,48, 1):
+                self.led.set_r_intensity(pow(1.01,i))
+                self.led.set_g_intensity(pow(1.01,i))
+                sleep(0.01)
+            
+            for i in range(48,1, -1):
+                self.led.set_r_intensity(pow(1.01,i))
+                self.led.set_g_intensity(pow(1.01,i))
+                sleep(0.01)
+
+    
+
 
 def connect_to_speaker(addr, retry=10, debug=False):
     for i in range(1, retry):
@@ -15,9 +56,6 @@ def connect_to_speaker(addr, retry=10, debug=False):
             errprint('An exception occurred: %r', exception)
             sys.exit(10)
 
-
-def scarry_voices():
-    pulseaudio.Play([(0, 1.0)], "../ambient1.wav")
 
 def manage_buttons(remote):
     while True:
@@ -31,56 +69,16 @@ def manage_buttons(remote):
                     else:
                         return "short"
 
-#def WaitForRemoteInput():
-#    remote = bt_devices.BluetoothRemote("2A:07:98:10:32:05")
-#    remote.WaitForOutput()
-
-async def listen_for_movement(sensor):
-    sensor.wait_for_movement()
-
-def sequence():
-    pulseaudio.Play([(blt_speaker.paindex, 1.0)], "axel.mp3")
-
 def main():
-    #blt_speaker = connect_to_speaker("0C:A6:94:62:67:40", debug=False)
-    blt_speaker = connect_to_speaker("18:1D:EA:A0:2F:D4", debug=False)
-    remote = bt_devices.BluetoothRemote("2A:07:98:10:34:2C")
-    sensors_pins = [19]
-    sensors = []
-    for pin in sensors_pins:
-        sensors.append(movement_sensor(pin))
-
-    tasks = []
-    for sensor in sensors:
-        tasks.append(asyncio.create_task(listen_for_movement(sensor)))
-
-    await asyncio.gather(tasks)
-
-    ##threading.Thread(target=Chandelier, args=(blt_speaker), daemon=True).start()
-    #threading.Thread(target=scarry_voices, args=(), daemon=True).start()
-    #
-    #blt_speaker = "1"
-    #if manage_buttons(remote) == "long":
-    #    scarry_thr = threading.Thread(target=scarry_voices, args=())
-    #    scarry_thr.start()
-    #    scarry_thr.join()
-    #else:
-    #    ringtone_thr = threading.Thread(target=ringtone, args=(blt_speaker))
-    #    ringtone_thr.start()
-    #    while ringtone_thr.is_alive():
-    #        if manage_buttons(remote) == "long":
-    #            scarry_thr = threading.Thread(target=scarry_voices, args=())
-    #            scarry_thr.start()
-    #            scarry_thr.join()
+    
+    chandelier = Chandelier([19, 26], [20,21,21], "0C:A6:94:62:67:40", "2A:07:98:10:34:2C")
+    #chandelier.play_ringtone(1)
+    #chandelier.play_voices(1)
+    #chandelier.led_after_detection()
+    #sleep(10)
+    #chandelier.led_after_pick_up()
+    #sleep(10)
+    chandelier.led_standby()
+    #chandelier.sensors.wait_for_movement()
 
 
-    #sleep(50)
-
-    #while blt_speaker.CheckIfConnected():
-    #    sleep(10)
-    #utilities.errprint("Device lost connection, program will exit.")
-
-    #initialize leds
-    #if ruch then ring and white leds
-    #if pushed buttons then voices and red leds
-    # sleep for two minutes

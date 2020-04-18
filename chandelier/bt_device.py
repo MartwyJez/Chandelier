@@ -19,8 +19,11 @@ class BluetoothDevice:
 
     def check_if_connected(self):
         try:
-            pexpect.spawn("hcitool con").expect(self.addr)
-            return True
+            hci = pexpect.spawn("hcitool con")
+            if hci.expect([self.addr, pexpect.EOF]) == 0:
+                return True
+            else:
+                return False
         except pexpect.ExceptionPexpect as exception:
             errprint(exception)
             return False
@@ -32,8 +35,11 @@ class BluetoothDevice:
 
     @retry(pexpect.exceptions.TIMEOUT, tries=20)
     def __check_if_device_is_visible__(self):
-        self.__interface__.sendline("\ndevices")
-        self.__interface__.expect(self.addr)
+        try:
+            self.__interface__.sendline("\ndevices")
+            self.__interface__.expect(self.addr)
+        except self.DeviceNotFound as exception:
+            raise exception
 
     @retry(pexpect.exceptions.TIMEOUT, tries=120)
     def __connect_to_device__(self):
@@ -43,12 +49,15 @@ class BluetoothDevice:
             sleep(10)
 
     def __pair__(self):
-        self.__interface__.sendline("\npaired-devices")
         try:
-            self.__interface__.expect(self.addr)
-        except pexpect.exceptions.TIMEOUT:
-            self.__interface__.sendline("\npair " + self.addr)
-            self.__interface__.expect("Pairing successful")
+            self.__interface__.sendline("\npaired-devices")
+            try:
+                self.__interface__.expect(self.addr)
+            except pexpect.exceptions.TIMEOUT:
+                self.__interface__.sendline("\npair " + self.addr)
+                self.__interface__.expect("Pairing successful")
+        except:
+            raise self.BluetoothError
 
     def __open_interface__(self):
         try:
@@ -82,23 +91,12 @@ class BluetoothDevice:
 
     def __connect__(self):
         try:
-            try:
-                self.__check_if_device_is_visible__()
-            except pexpect.exceptions.TIMEOUT:
-                raise self.DeviceNotFound
+            self.__check_if_device_is_visible__()
             stdprint("Device " + self.addr + " is visible")
-
             self.__pair__()
             stdprint("Device " + self.addr + " is paired")
-            try:
-                if not self.check_if_connected():
-                    self.__connect_to_device__()
-                else:
-                    print("Device already connected.")
-            except pexpect.exceptions.TIMEOUT:
-                raise self.DeviceNotFound
+            self.__connect_to_device__()
             stdprint("Connection to " + self.addr + " are estabilished")
-
         except self.DeviceNotFound as exception:
             errprint(exception)
             errprint("Rasberry couldn't find device or connect.")
@@ -113,6 +111,9 @@ class BluetoothDevice:
             self.addr = addr
             self.__debug_on__ = debug
             self.__agent__ = agent
+            if self.check_if_connected():
+                stdprint("Device already connected.")
+                return None
             self.__interface__ = self.__open_interface__()
             self.__prepare_bluetooth__(self.__agent__)
             self.__connect__()
