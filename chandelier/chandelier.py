@@ -2,49 +2,62 @@ import sys
 from time import sleep
 from chandelier import bt_devices, led, movement_sensor, pulseaudio
 from .utilities import errprint
-import asyncio
+import threading
+
 
 class Chandelier:
+    standby_on = True
     def __init__(self, sensors_pins, led_pins, speaker_addr, remote_addr):
-        #self.blt_speaker = bt_devices.BluetoothSpeaker(speaker_addr, debug=False)
+        self.blt_speaker = bt_devices.BluetoothSpeaker(speaker_addr, debug=False)
         #self.remote = bt_devices.BluetoothRemote(remote_addr)
-        #self.sensors = movement_sensor.MovementSensors(sensors_pins)
+        self.sensors = movement_sensor.MovementSensors(sensors_pins)
         self.led = led.Led(led_pins[0], led_pins[1], led_pins[2])
 
     def play_ringtone(self, volume):
-        self.ringtone = pulseaudio.Play([(self.blt_speaker.pa_index, volume)], "axel.mp3")
-    
+        self.ringtone = pulseaudio.Play(
+            [(self.blt_speaker.pa_index, volume)], "axel.mp3")
+
     def stop_playing_ringtone(self):
         self.ringtone.stop_playing()
-    
+
     def play_voices(self, volume):
         self.voices = pulseaudio.Play([(0, volume)], "../ambient1.wav")
-    
+
     def stop_playing_voices(self):
         self.voices.stop_playing()
 
     def led_after_detection(self):
         self.led.set_r_intensity(100)
         self.led.set_g_intensity(100)
-    
+
     def led_after_pick_up(self):
         self.led.set_r_intensity(100)
         self.led.set_g_intensity(0)
-    
-    def led_standby(self):
-        while True:
-            for i in range(1,48, 1):
-                self.led.set_r_intensity(pow(1.01,i))
-                self.led.set_g_intensity(pow(1.01,i))
-                sleep(0.01)
-            
-            for i in range(48,1, -1):
-                self.led.set_r_intensity(pow(1.01,i))
-                self.led.set_g_intensity(pow(1.01,i))
-                sleep(0.01)
 
-    
+    def __led_standby(self):
+        while self.standby_on == True:
+            for i in range(1, 155, 1):
+                self.led.set_r_intensity(pow(1.03, i))
+                self.led.set_g_intensity(pow(1.03, i))
+                if self.standby_on == False:
+                    return True
+                sleep(0.03)
 
+            for i in range(155, 1, -1):
+                self.led.set_r_intensity(pow(1.03, i))
+                self.led.set_g_intensity(pow(1.03, i))
+                if self.standby_on == False:
+                    return True
+                sleep(0.03)
+
+
+    def led_standby_on(self):
+        led_thread = threading.Thread(target=self.__led_standby)
+        sensors_thread = threading.Thread(target=self.sensors.wait_for_movement)
+        sensors_thread.start()
+        led_thread.start()
+        sensors_thread.join()
+        self.standby_on = False
 
 def connect_to_speaker(addr, retry=10, debug=False):
     for i in range(1, retry):
@@ -69,16 +82,28 @@ def manage_buttons(remote):
                     else:
                         return "short"
 
+
 def main():
-    
-    chandelier = Chandelier([19, 26], [20,21,21], "0C:A6:94:62:67:40", "2A:07:98:10:34:2C")
-    #chandelier.play_ringtone(1)
-    #chandelier.play_voices(1)
+
+    chandelier = Chandelier([16, 26], [20, 21, 21],
+                            "30:21:A0:29:85:28", "2A:07:98:10:34:2C") #sensors, leds, speaker, remote
+    #chandelier.led_standby_on()
+    chandelier.led_after_detection()
+    sleep(3)
+    chandelier.play_ringtone(2)
+    sleep(30)
     #chandelier.led_after_detection()
+    #chandelier.play_ringtone(1)
+    #sleep(50)
+    #chandelier.play_voices(1)
+    ##chandelier.led_after_detection()
     #sleep(10)
     #chandelier.led_after_pick_up()
     #sleep(10)
-    chandelier.led_standby()
-    #chandelier.sensors.wait_for_movement()
-
+    #print("casd")
+    #chandelier.led_standby_on()
+    #print("cos")
+    #sleep(10)
+    #chandelier.led_standby_off()
+    # chandelier.sensors.wait_for_movement()
 

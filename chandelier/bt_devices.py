@@ -1,5 +1,6 @@
 import asyncio
 from retry import retry
+from time import sleep
 import evdev
 import pulsectl
 from . import bt_device, utilities
@@ -15,6 +16,7 @@ class BluetoothSpeaker(bt_device.BluetoothDevice):
 
     def __init__(self, addr, debug=False, agent="NoInputNoOutput"):       
         super().__init__(addr, debug, agent)
+        sleep(3)
         try:
             self.pa_index, self.paname = self.__get_pulse_audio_sink__()
         except TypeError:

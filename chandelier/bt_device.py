@@ -121,13 +121,13 @@ class BluetoothDevice:
         except Exception as exception:
             print(exception)
             self.__interface__ = self.__open_interface__()
-            self.__end_connection__()
+            #self.__end_connection__()
             raise exception
 
-    def __del__(self):
-        #self.__interface__ = self.__open_interface__()
-        #try:
-        #    self.__end_connection__()
-        #except:
-        #    pass
-        stdprint("Device " + self.addr + " is disconnected!")
+    #def __del__(self):
+    #    self.__interface__ = self.__open_interface__()
+    #    try:
+    #        #self.__end_connection__()
+    #    except:
+    #        pass
+    #    stdprint("Device " + self.addr + " is disconnected!")

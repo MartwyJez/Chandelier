@@ -20,7 +20,7 @@ class _SingleMovementSensor():
 
 class MovementSensors():
     def __init__(self, pin_list):
-        self.loop = asyncio.get_event_loop()
+        self.loop = asyncio.new_event_loop()
         self.sensors = []
         for pin in pin_list:
             self.sensors.append(_SingleMovementSensor(pin, self.loop))
@@ -34,6 +34,7 @@ class MovementSensors():
             sensor._add_movement_callback(self.__stop_on_movement__)
         self.loop.run_forever()
         self.loop.close()
+
         for sensor in self.sensors:
             sensor._remove_callback()
 
