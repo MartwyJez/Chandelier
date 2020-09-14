@@ -32,7 +32,6 @@ class BluetoothDevice:
         self.__interface__.sendline("\ndisconnect")
         self.__interface__.expect("diconnected", timeout=5)
 
-
     @retry(pexpect.exceptions.TIMEOUT, tries=20)
     def __check_if_device_is_visible__(self):
         try:
@@ -43,10 +42,11 @@ class BluetoothDevice:
 
     @retry(pexpect.exceptions.TIMEOUT, tries=120)
     def __connect_to_device__(self):
+        if not self.check_if_connected:
+            self.__end_connection__()
+            sleep(3)
         self.__interface__.sendline("\nconnect "+self.addr)
         self.__interface__.expect("Connection successful", timeout=5)
-        while not self.check_if_connected():
-            sleep(10)
 
     def __pair__(self):
         try:

@@ -38,19 +38,30 @@ class BluetoothRemote(bt_device.BluetoothDevice):
         return devices
 
     def wait_and_get_output(self):
-        inputs = self.remote_inputs
+        @asyncio.coroutine
         async def print_events(device):
             async for event in device.async_read_loop():
                 cat_event = evdev.categorize(event)
                 if isinstance(cat_event, evdev.KeyEvent):
+                    asyncio.get_running_loop().stop()
                     return cat_event
 
-        devs_future = ""
-        for device in inputs:
-            devs_future = asyncio.ensure_future(print_events(device))
+        loop = asyncio.new_event_loop()
 
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete(devs_future)
+        tasks = []
+        for device in self.remote_inputs:
+            tasks.append(loop.create_task(print_events(device)))
+
+        loop.run_forever()
+
+        for task in tasks:
+            if task.done():
+              return task.result()
+        
+        #devs_tasks = []
+        #for device in inputs:
+        #    task = asyncio.ensure_future(print_events(device))
+        #    devs_tasks.append(task)
 
     def __init__(self, addr, debug=False, agent="NoInputNoOutput"):
         try:
