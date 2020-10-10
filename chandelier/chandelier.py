@@ -1,5 +1,6 @@
 from time import sleep
 import threading
+from retry import retry
 from chandelier import bt_devices, led, movement_sensor, pulseaudio
 
 class Chandelier:
@@ -7,10 +8,14 @@ class Chandelier:
     playing_voices = False
     press_duration = ""
 
+    @retry(Exception, tries=10, delay=2)
+    def connect_to_remote(self, addr):
+        remote = bt_devices.BluetoothRemote(addr)
+        return remote
+
     def __init__(self, sensors_pins, led_pins, speaker_addr, remote_addr):
-        self.blt_speaker = bt_devices.BluetoothSpeaker(
-            speaker_addr, debug=False)
-        self.remote = bt_devices.BluetoothRemote(remote_addr)
+        self.blt_speaker = bt_devices.BluetoothSpeaker(speaker_addr)
+        self.remote = self.connect_to_remote(remote_addr)
         self.sensors = movement_sensor.MovementSensors(sensors_pins)
         self.led = led.Led(led_pins[0], led_pins[1], led_pins[2])
 
@@ -92,6 +97,7 @@ class Chandelier:
         ambient = pulseaudio.Play([(self.blt_speaker.pa_index, 0.8)], "../ambient1.wav")
         button_thread = threading.Thread(target=self.wait_for_pick_up)
         button_thread.join(175)
+        ambient.stop_playing()
 
     def wait_for_beggining(self):
         led_thread = threading.Thread(target=self.__led_pulsing_white)
@@ -139,19 +145,19 @@ class Chandelier:
                             self.press_duration = "short"
 
 
-def main():
-    
-    while True:
-        chandelier = None
-        chandelier = Chandelier([16, 19, 26], [20, 21, 21],
-                                "0C:A6:94:62:67:40", "2A:07:98:10:34:2C")  # sensors, leds, speaker, remote
-        chandelier.wait_for_beggining()
-        chandelier.led_white()
-        chandelier.play_ringtone(1)
-        chandelier.wait_for_pick_up()
-        chandelier.stop_playing_ringtone()
-        press_duration = chandelier.voices()
-        if press_duration == "long":
-            chandelier.fail()
-        else:
-            chandelier.success()
+def main(): 
+    chandelier = Chandelier([16, 19, 26], [20, 21, 21],
+                            "0C:A6:94:62:67:40", "2A:07:98:10:32:05")  # sensors, leds, speaker, remote
+    chandelier.wait_for_beggining()
+    chandelier.led_white()
+    sleep(2)
+    chandelier.play_ringtone(1)
+    chandelier.wait_for_pick_up()
+    chandelier.stop_playing_ringtone()
+    sleep(2)
+    press_duration = chandelier.voices()
+    if press_duration == "long":
+        chandelier.fail()
+    else:
+        chandelier.success()
+    chandelier.wait_between_seq()

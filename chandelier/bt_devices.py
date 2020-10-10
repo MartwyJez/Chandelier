@@ -7,14 +7,14 @@ from . import bt_device, utilities
 
 class BluetoothSpeaker(bt_device.BluetoothDevice):
 
-    @retry(Exception, tries=5, delay=3)
+    @retry(Exception, tries=20, delay=3)
     def __get_pulse_audio_sink__(self):
         with pulsectl.Pulse('list-sinks') as pulse:
             for sink in pulse.sink_list():
                 if sink.proplist.get('device.string') == self.addr:
                     return sink.index, sink.name
 
-    def __init__(self, addr, debug=False, agent="NoInputNoOutput"):       
+    def __init__(self, addr, debug=False, agent="NoInputNoOutput"):
         super().__init__(addr, debug, agent)
         sleep(3)
         try:
@@ -29,15 +29,17 @@ class BluetoothRemote(bt_device.BluetoothDevice):
     __loop = ""
     remote_inputs = []
     output = ""
-    @retry(Exception, tries=5, delay=3)
+
     def __remote_devices__(self, addr):
         remote_address = addr
         devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
         for device in devices:
-            if device.phys not in remote_address:
+            if device.phys == '':
                 devices.remove(device)
+        if len(devices) == 0:
+            raise Exception
         return devices
-    
+
     def stop_waiting_on_output(self):
         self.__loop.stop()
 

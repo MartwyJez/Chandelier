@@ -17,7 +17,19 @@ class BluetoothDevice:
     class DeviceNotFound(Exception):
         """Raised when given device can't be found"""
 
-    def check_if_connected(self):
+    def reset_config(self):
+        try:
+            hci_name = pexpect.spawn('hcitool dev | grep hc.. -o').read()
+            hci = pexpect.spawn("sudo hciconfig "+ hci_name +" reset")
+            if hci.expect([self.addr, pexpect.EOF]) == 0:
+                return True
+            else:
+                return False
+        except pexpect.ExceptionPexpect as exception:
+            errprint(exception)
+            return False
+
+    def is_connected(self):
         try:
             hci = pexpect.spawn("hcitool con")
             if hci.expect([self.addr, pexpect.EOF]) == 0:
@@ -32,21 +44,28 @@ class BluetoothDevice:
         self.__interface__.sendline("\ndisconnect")
         self.__interface__.expect("diconnected", timeout=5)
 
-    @retry(pexpect.exceptions.TIMEOUT, tries=20)
-    def __check_if_device_is_visible__(self):
+    @retry(pexpect.exceptions.TIMEOUT, tries=20, delay=1)
+    def __is_device_visible__(self):
         try:
             self.__interface__.sendline("\ndevices")
             self.__interface__.expect(self.addr)
         except self.DeviceNotFound as exception:
             raise exception
 
-    @retry(pexpect.exceptions.TIMEOUT, tries=120)
+    @retry(pexpect.exceptions.TIMEOUT, tries=10, delay=2)
     def __connect_to_device__(self):
-        if not self.check_if_connected:
+        if not self.is_connected():
             self.__end_connection__()
             sleep(3)
         self.__interface__.sendline("\nconnect "+self.addr)
         self.__interface__.expect("Connection successful", timeout=5)
+        sleep(2)
+        if not self.is_connected():
+            raise pexpect.exceptions.TIMEOUT
+
+    def __trust__(self):
+        self.__interface__.sendline("\ntrust " + self.addr)
+        self.__interface__.expect("trust succeeded")
 
     def __pair__(self):
         try:
@@ -91,12 +110,16 @@ class BluetoothDevice:
 
     def __connect__(self):
         try:
-            self.__check_if_device_is_visible__()
+            self.__is_device_visible__()
             stdprint("Device " + self.addr + " is visible")
+            sleep(1)
+            self.__trust__()
             self.__pair__()
+            sleep(1)
             stdprint("Device " + self.addr + " is paired")
             self.__connect_to_device__()
-            stdprint("Connection to " + self.addr + " are estabilished")
+            sleep(1)
+            stdprint("Connection to " + self.addr + " is estabilished")
         except self.DeviceNotFound as exception:
             errprint(exception)
             errprint("Rasberry couldn't find device or connect.")
@@ -111,23 +134,27 @@ class BluetoothDevice:
             self.addr = addr
             self.__debug_on__ = debug
             self.__agent__ = agent
-            if self.check_if_connected():
+            if self.is_connected():
                 stdprint("Device already connected.")
                 return None
+            self.reset_config()
             self.__interface__ = self.__open_interface__()
             self.__prepare_bluetooth__(self.__agent__)
             self.__connect__()
             self.__interface__.kill(15)
         except Exception as exception:
+            #self.__interface__.kill(15)
             print(exception)
             self.__interface__ = self.__open_interface__()
             #self.__end_connection__()
             raise exception
 
     #def __del__(self):
-    #    self.__interface__ = self.__open_interface__()
-    #    try:
-    #        #self.__end_connection__()
-    #    except:
-    #        pass
-    #    stdprint("Device " + self.addr + " is disconnected!")
+    #    if self.__debug_on__:
+    #        print("disconnect")
+    #        self.__interface__ = self.__open_interface__()
+    #        try:
+    #            self.__end_connection__()
+    #        except:
+    #            pass
+    #        stdprint("Device " + self.addr + " is disconnected!")
