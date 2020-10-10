@@ -1,13 +1,13 @@
 import asyncio
-from retry import retry
 from time import sleep
+from retry import retry
 import evdev
 import pulsectl
 from . import bt_device, utilities
 
 class BluetoothSpeaker(bt_device.BluetoothDevice):
-
-    @retry(Exception, tries=5, delay=3)
+    
+    @retry(Exception, tries=20, delay=1)
     def __get_pulse_audio_sink__(self):
         with pulsectl.Pulse('list-sinks') as pulse:
             for sink in pulse.sink_list():
@@ -29,13 +29,15 @@ class BluetoothRemote(bt_device.BluetoothDevice):
     __loop = ""
     remote_inputs = []
     output = ""
-    @retry(Exception, tries=5, delay=3)
+    
     def __remote_devices__(self, addr):
         remote_address = addr
         devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
         for device in devices:
-            if device.phys not in remote_address:
+            if device.phys == '':
                 devices.remove(device)
+        if len(devices) == 0:
+            raise Exception
         return devices
     
     def stop_waiting_on_output(self):
