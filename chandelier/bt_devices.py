@@ -1,13 +1,13 @@
 import asyncio
-from retry import retry
 from time import sleep
+from retry import retry
 import evdev
 import pulsectl
 from . import bt_device, utilities
 
 class BluetoothSpeaker(bt_device.BluetoothDevice):
-
-    @retry(Exception, tries=5, delay=3)
+    
+    @retry(Exception, tries=20, delay=1)
     def __get_pulse_audio_sink__(self):
         with pulsectl.Pulse('list-sinks') as pulse:
             for sink in pulse.sink_list():
@@ -26,16 +26,22 @@ class BluetoothSpeaker(bt_device.BluetoothDevice):
 
 
 class BluetoothRemote(bt_device.BluetoothDevice):
+    __loop = ""
     remote_inputs = []
     output = ""
-    @retry(Exception, tries=5, delay=3)
+    
     def __remote_devices__(self, addr):
         remote_address = addr
         devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
         for device in devices:
-            if device.phys not in remote_address:
+            if device.phys == '':
                 devices.remove(device)
+        if len(devices) == 0:
+            raise Exception
         return devices
+    
+    def stop_waiting_on_output(self):
+        self.__loop.stop()
 
     def wait_and_get_output(self):
         @asyncio.coroutine
@@ -46,22 +52,17 @@ class BluetoothRemote(bt_device.BluetoothDevice):
                     asyncio.get_running_loop().stop()
                     return cat_event
 
-        loop = asyncio.new_event_loop()
+        self.__loop = asyncio.new_event_loop()
 
         tasks = []
         for device in self.remote_inputs:
-            tasks.append(loop.create_task(print_events(device)))
+            tasks.append(self.__loop.create_task(print_events(device)))
 
-        loop.run_forever()
+        self.__loop.run_forever()
 
         for task in tasks:
             if task.done():
               return task.result()
-        
-        #devs_tasks = []
-        #for device in inputs:
-        #    task = asyncio.ensure_future(print_events(device))
-        #    devs_tasks.append(task)
 
     def __init__(self, addr, debug=False, agent="NoInputNoOutput"):
         try:

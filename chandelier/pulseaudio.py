@@ -52,8 +52,12 @@ class Play(OutputControl):
         self.player.stop()
         self.player.release()
 
-    def __init__(self, sinks, file):
+    def __init__(self, sinks, file, repeat=True):
         self.file = file
-        self.player = vlc.MediaPlayer(vlc.Instance('--input-repeat=999999'), file)
+        if repeat:
+            self.player = vlc.MediaPlayer(vlc.Instance('--input-repeat=999999'), file)
+        else:
+            self.player = vlc.MediaPlayer(vlc.Instance(), file)
         super().__init__(sinks)
         self.play()
+
