@@ -7,7 +7,7 @@ from . import bt_device, utilities
 
 class BluetoothSpeaker(bt_device.BluetoothDevice):
 
-    @retry(Exception, tries=20, delay=3)
+    @retry(Exception, tries=3, delay=3)
     def __get_pulse_audio_sink__(self):
         with pulsectl.Pulse('list-sinks') as pulse:
             for sink in pulse.sink_list():
@@ -30,13 +30,13 @@ class BluetoothRemote(bt_device.BluetoothDevice):
     remote_inputs = []
     output = ""
 
+    @retry(Exception, tries=3, delay=3)
     def __remote_devices__(self, addr):
-        remote_address = addr
         devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
         for device in devices:
             if device.phys == '':
                 devices.remove(device)
-        if len(devices) == 0:
+        if len(devices) < 2:
             raise Exception
         return devices
 
@@ -61,13 +61,18 @@ class BluetoothRemote(bt_device.BluetoothDevice):
         self.__loop.run_forever()
 
         for task in tasks:
-            if task.done():
-              return task.result()
+            try:
+                if task.done():
+                    return task.result()
+            except:
+                return None
 
     def __init__(self, addr, debug=False, agent="NoInputNoOutput"):
         try:
             super().__init__(addr, debug, agent)
             self.remote_inputs = self.__remote_devices__(addr)
         except Exception as exception:
+            bt_device.reset_config()
             utilities.errprint(exception)
+            self.__end_connection__()
             raise exception

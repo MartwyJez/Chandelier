@@ -47,6 +47,9 @@ class Play(OutputControl):
 
     def stop_playing(self):
         self.player.stop()
+    
+    def is_playing(self):
+        self.player.is_playing()
 
     def __del__(self):
         self.player.stop()
