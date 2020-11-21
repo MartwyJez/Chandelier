@@ -9,7 +9,7 @@ class LedColor:
         self.pin = pin
 
 class Led:
-    def __init__(self, R, G, B, freq=50):
+    def __init__(self, R, G, B, freq=100):
         self._red = LedColor(R)
         self._green = LedColor(G)
         self._blue = LedColor(B)
