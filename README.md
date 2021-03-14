@@ -25,9 +25,9 @@ We wanted to create interactive sequence about schizophrenia related topics.
 
 
 ## Main problems:
-1. Not commented, messy code. It was written by one person in quite limited amount of time. But it recoverable messy in case that we will continue our project.
-2. Bluetooth button - one hell ride with it - this technology it's not meant to be used on "wait long for input" mode. Remote is get constantly disconnected. This is main of reason why main program is looks like it looks.
-In next iteration we surely switch for cable-connected button and maybe speaker too.
+1. Not commented, messy code. It was written by one person in quite limited amount of time. But it is recoverable messy, it will be cleaned if we will be continuing our project.
+2. Bluetooth button - one hell ride with it - this technology it's not meant to be used on "wait long for input" mode. Remote is getting constantly disconnected. This is main reason why main program looks like it looks.
+In next iteration we will surely switch for cable-connected button and maybe speaker too.
 3. Movement sensors are too sensitive, we couldn't placed it in way that no sensor won't instantly sense a movement. Because of that we decided to add hardcoded pause between waiting for movement and continuing. On top of that I had to change mode of detecting - reacting to change from 0 (not detecting) to 1 (detecting) was replaced by just checking if even one sensor send 1.
 4. It was my playground for learning how to write someting asynchronized and multi-threaded.
 5. Using VLC python library - as much as it was the simplest sound player that I could find, later I would rather switch to something lighter.
