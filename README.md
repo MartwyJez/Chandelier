@@ -1,4 +1,6 @@
-# Artistic installation project "Chandelier"
+# Artistic installation project "Chandelier
+![Chandelier installation]
+(https://github.com/MartwyJez/Chandelier/blob/master/chandelier_installation_movie.WEBP)
 ## Main idea
 We wanted to create interactive sequence about schizophrenia related topics.
 #### It is made made from:
